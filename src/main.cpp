@@ -1,12 +1,10 @@
 #include <ESP8266HTTPClient.h>
 #include <ESP8266WiFi.h>
-#include <DHT.h>
+#include <Adafruit_BME280.h>
 
 #define SLEEP_TIME_SECONDS 900 // 15 minutes
 #define ALLOWED_CONNECT_CYCLES 20
 #define ALLOWED_READ_CYCLES 40
-#define DHT_PIN D4
-#define DHT_TYPE DHT22
 
 const String wifiSSID = "";
 const String wifiPassword = "";
@@ -17,11 +15,16 @@ const int hostPort = 5020;
 const char* uri = "http://10.0.0.250:5020/v1/datalog/";
 const char* sensorId = "s01";
 
-DHT dht(DHT_PIN, DHT_TYPE);
+Adafruit_BME280 bme;
 
 void setup() {
-
   Serial.begin(9600);
+  
+  if (!bme.begin(0x76)) {
+    Serial.println("Could not find a valid BME280 sensor.");
+    delay(2000);
+    ESP.deepSleep(SLEEP_TIME_SECONDS * 1000000);
+  }
 
   WiFi.begin(wifiSSID, wifiPassword);
   
@@ -37,13 +40,12 @@ void setup() {
   WiFiClient wifiClient;
 
   if (wifiClient.connect(hostIp, hostPort)) {
-    dht.begin();
     float humidity;
     float temperature;
     
     do {
-      humidity = dht.readHumidity();
-      temperature = dht.readTemperature();
+      humidity = bme.readHumidity();
+      temperature = bme.readTemperature();
       counter++;
       if (counter > ALLOWED_READ_CYCLES) {
         ESP.deepSleep(SLEEP_TIME_SECONDS * 1000000);
